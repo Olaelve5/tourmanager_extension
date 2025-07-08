@@ -16,7 +16,7 @@ A simple browser extension that adds a "Transfers Used" column to the leaderboar
 
 <br>
 
-#### ✨ With extension
+#### ✅ With extension
 <img src="https://github.com/user-attachments/assets/3a454f80-3ef2-4856-948d-72a7d1c4fa7e" width="600">
 
 
