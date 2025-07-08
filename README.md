@@ -12,10 +12,12 @@ A simple browser extension that adds a "Transfers Used" column to the leaderboar
 ## Screenshots 📸
 
 #### ❌ Without extension
-![tourmanager_extension_before](https://github.com/user-attachments/assets/c933775d-33fa-4e04-af94-dd1428d2fd38)
+<img src="https://github.com/user-attachments/assets/c933775d-33fa-4e04-af94-dd1428d2fd38" width="600">
 
-#### ✅ With extension
-![tourmanager_extension_after](https://github.com/user-attachments/assets/3a454f80-3ef2-4856-948d-72a7d1c4fa7e)
+<br>
+
+#### ✨ With extension
+<img src="https://github.com/user-attachments/assets/3a454f80-3ef2-4856-948d-72a7d1c4fa7e" width="600">
 
 
 ## How It Works ⚙️
