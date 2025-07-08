@@ -6,7 +6,7 @@ A simple browser extension that adds a "Transfers Used" column to the leaderboar
 
 * **➕ Adds a new column** to the leaderboard showing transfers made.
 * **🔢 Displays both current round and total transfers**.
-* ⚡ Caches data for faster loading and to help avoid API rate limits.
+* **⚡ Caches data** for faster loading and to help avoid API rate limits.
 * **🔄 Automatically updates** when you change pages.
 
 ## Screenshots 📸
