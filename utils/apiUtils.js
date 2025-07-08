@@ -13,7 +13,7 @@ async function fetchAllManagerTransfers(fantasyTeamIds, round) {
   });
 
   if (teamsToFetch.length === 0) {
-    console.log("✅ All data from cache!");
+    debugLog("✅ All data from cache!");
     return results;
   }
 
@@ -31,7 +31,7 @@ async function fetchAllManagerTransfers(fantasyTeamIds, round) {
         setCachedTransfers(teamId, round, response.data);
         return { teamId, data: response.data };
       } else {
-        console.error(
+        debugError(
           `❌ Failed to fetch data for team ${teamId}:`,
           response.error
         );
@@ -51,7 +51,7 @@ async function fetchAllManagerTransfers(fantasyTeamIds, round) {
         };
       }
     } catch (error) {
-      console.error(`❌ Error fetching team ${teamId}:`, error);
+      debugError(`❌ Error fetching team ${teamId}:`, error);
       return { teamId, data: { gameweekTransfers: "?", totalTransfers: "?" } };
     }
   });
@@ -64,6 +64,6 @@ async function fetchAllManagerTransfers(fantasyTeamIds, round) {
     results[teamId] = data;
   });
 
-  console.log("✅ All transfers fetched!");
+  debugLog("✅ All transfers fetched!");
   return results;
 }

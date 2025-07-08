@@ -8,7 +8,7 @@ function getCachedTransfers(teamId, round) {
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Date.now() - parsed.timestamp < CACHE_DURATION) {
-        console.log(`💾 Session cache hit for team ${teamId}`);
+        debugLog(`💾 Session cache hit for team ${teamId}`);
         return parsed.data;
       } else {
         // Remove expired cache
@@ -16,7 +16,7 @@ function getCachedTransfers(teamId, round) {
       }
     }
   } catch (error) {
-    console.error("Cache read error:", error);
+    debugError("Cache read error:", error);
   }
   return null;
 }
@@ -31,8 +31,8 @@ function setCachedTransfers(teamId, round, data) {
         timestamp: Date.now(),
       })
     );
-    console.log(`💾 Cached to session storage for team ${teamId}`);
+    debugLog(`💾 Cached to session storage for team ${teamId}`);
   } catch (error) {
-    console.error("Cache write error:", error);
+    debugError("Cache write error:", error);
   }
 }

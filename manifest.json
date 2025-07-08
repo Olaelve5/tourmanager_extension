@@ -3,7 +3,6 @@
   "name": "Tour Manager Enhancement",
   "version": "1.0",
   "description": "Adds a column showing the number of changes per manager on tourmanager.no.",
-  "permissions": ["storage"],
   "host_permissions": [
     "https://tourmanager.no/*",
     "https://tourmanager-game.api.scoutgg.net/*"
@@ -15,6 +14,7 @@
     {
       "matches": ["https://tourmanager.no/*"],
       "js": [
+        "utils/debugUtils.js",
         "utils/findElementsUtils.js",
         "utils/cacheUtils.js",
         "utils/apiUtils.js",

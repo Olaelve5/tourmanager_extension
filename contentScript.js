@@ -16,12 +16,12 @@ async function startModification() {
   const { headerRow, tableElement, round } = findTableElements();
 
   if (!headerRow || !tableElement) {
-    console.error("Could not find the necessary elements to modify.");
+    debugError("Could not find the necessary elements to modify.");
     return false;
   }
 
   if (tableElement.querySelector("th.gwChanges")) {
-    console.log("✅ Table already modified, skipping...");
+    debugLog("✅ Table already modified, skipping...");
     return true;
   }
 
@@ -30,7 +30,7 @@ async function startModification() {
   modifyHeaderRow(headerRow);
   modifyTableRows(tableElement);
 
-  console.log(
+  debugLog(
     "🔄 Fetching all manager transfers for user IDs:",
     userIds,
     "and round:",
@@ -39,11 +39,11 @@ async function startModification() {
   const allManagerTransfers = await fetchAllManagerTransfers(userIds, round);
 
   if (!allManagerTransfers) {
-    console.error("❌ Failed to fetch manager transfers.");
+    debugError("❌ Failed to fetch manager transfers.");
     return false;
   }
 
-  console.log("Fetched all manager transfers:", allManagerTransfers);
+  debugLog("Fetched all manager transfers:", allManagerTransfers);
 
   modifyTableRows(tableElement, allManagerTransfers);
 
@@ -59,14 +59,14 @@ function attemptModification() {
   const intervalId = setInterval(async () => {
     const success = await startModification();
     if (success) {
-      console.log("✅ Successfully modified the leaderboard.");
+      debugLog("✅ Successfully modified the leaderboard.");
       clearInterval(intervalId);
       if (!shadowDOMObserverSetup) {
         setupShadowDOMObserver();
         shadowDOMObserverSetup = true;
       }
     } else {
-      console.log("🔄 Retrying...");
+      debugLog("🔄 Retrying...");
     }
   }, 500);
 
@@ -103,11 +103,11 @@ observer.observe(document.body, {
 function setupShadowDOMObserver() {
   const pageHost = document.querySelector("smg-leaderboard-page");
   if (pageHost && pageHost.shadowRoot) {
-    console.log("Setting up outer shadow DOM observer");
+    debugLog("Setting up outer shadow DOM observer");
 
     // Only observe the outer shadow DOM - this catches pagination changes
     const outerObserver = new MutationObserver((mutations) => {
-      console.log("🔄 Shadow DOM mutations detected!", mutations.length);
+      debugLog("🔄 Shadow DOM mutations detected!", mutations.length);
       hasModified = false;
       attemptModification();
     });
@@ -119,6 +119,6 @@ function setupShadowDOMObserver() {
       characterData: true,
     });
 
-    console.log("✅ Shadow DOM observer setup successfully");
+    debugLog("✅ Shadow DOM observer setup successfully");
   }
 }

@@ -12,11 +12,11 @@ function modifyHeaderRow(headerRow) {
 
   if (targetTh) {
     headerRow.insertBefore(rankHeader, targetTh);
-    console.log("✅ Added 'Bytter gjort' header before gwPoints column.");
+    debugLog("✅ Added 'Bytter gjort' header before gwPoints column.");
   } else {
     // Fallback: insert at the beginning if target not found
     headerRow.insertBefore(rankHeader, headerRow.firstChild);
-    console.log(
+    debugLog(
       "✅ Added 'Bytter gjort' header at the beginning (target not found)."
     );
   }
@@ -26,7 +26,7 @@ function modifyTableRows(tableElement, transfersData = null) {
   const tbody = tableElement.querySelector("tbody");
 
   if (!tbody) {
-    console.error("Could not find the tbody element inside the table.");
+    debugError("Could not find the tbody element inside the table.");
     return;
   }
 
