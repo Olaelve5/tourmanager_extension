@@ -14,7 +14,13 @@
   "content_scripts": [
     {
       "matches": ["https://tourmanager.no/*"],
-      "js": ["findElementsUtils.js", "modificationUtils.js", "contentScript.js"]
+      "js": [
+        "utils/findElementsUtils.js",
+        "utils/cacheUtils.js",
+        "utils/apiUtils.js",
+        "utils/modificationUtils.js",
+        "contentScript.js"
+      ]
     }
   ]
 }

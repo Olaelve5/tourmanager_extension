@@ -64,3 +64,31 @@ function findTableElements() {
     round: round, // Return the found round
   };
 }
+
+function getUserIds(tableElement) {
+  const userIds = [];
+
+  if (!tableElement) {
+    console.error("Could not find table to extract user IDs");
+    return userIds;
+  }
+
+  // Find all ft-link elements within the table
+  const linkElements = tableElement.querySelectorAll(
+    "ft-link[href*='/dashboard/']"
+  );
+
+  linkElements.forEach((linkElement) => {
+    const href = linkElement.getAttribute("href");
+    if (href) {
+      // Extract the fantasyTeamId (second number) from: /dashboard/998580/107884227
+      const matches = href.match(/\/dashboard\/\d+\/(\d+)/);
+      if (matches && matches[1]) {
+        const fantasyTeamId = matches[1];
+        userIds.push(fantasyTeamId);
+      }
+    }
+  });
+
+  return userIds;
+}
