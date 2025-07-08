@@ -58,6 +58,19 @@ function modifyTableRows(tableElement, transfersData = null) {
 
       if (teamId && transfersData[teamId]) {
         const { gameweekTransfers, totalTransfers } = transfersData[teamId];
+
+        // Handle rate limit exceeded or error states
+        if (
+          (typeof totalTransfers === "string" &&
+            totalTransfers.includes("Rate")) ||
+          (typeof gameweekTransfers === "string" &&
+            gameweekTransfers.includes("Rate"))
+        ) {
+          changesCell.textContent = "rate limit exceeded";
+          changesCell.style.color = "orange";
+          return;
+        }
+
         changesCell.textContent = `${totalTransfers} (${gameweekTransfers})`;
       } else {
         changesCell.textContent = "- (-)"; // Error state
@@ -89,6 +102,16 @@ async function fetchAllManagerTransfers(fantasyTeamIds, round) {
           `❌ Failed to fetch data for team ${teamId}:`,
           response.error
         );
+        if (response.error.includes("status: 429")) {
+          return {
+            teamId,
+            data: {
+              gameweekTransfers: "Rate limit exceeded",
+              totalTransfers: "Rate limit exceeded",
+            },
+          };
+        }
+
         return {
           teamId,
           data: { gameweekTransfers: "?", totalTransfers: "?" },

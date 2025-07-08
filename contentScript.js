@@ -30,6 +30,12 @@ async function startModification() {
   modifyHeaderRow(headerRow);
   modifyTableRows(tableElement);
 
+  console.log(
+    "🔄 Fetching all manager transfers for user IDs:",
+    userIds,
+    "and round:",
+    round
+  );
   const allManagerTransfers = await fetchAllManagerTransfers(userIds, round);
 
   if (!allManagerTransfers) {
