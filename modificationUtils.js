@@ -3,7 +3,9 @@ function modifyHeaderRow(headerRow) {
   const rankHeader = document.createElement("th");
   rankHeader.className = "gwChanges";
   rankHeader.style.fontSize = "15px";
-  rankHeader.innerHTML = "Bytter<br>gjort";
+  rankHeader.style.textAlign = "center";
+  rankHeader.style.verticalAlign = "middle";
+  rankHeader.innerHTML = "Bytter brukt <br> (denne runden)";
 
   // Find the specific th element with classes gwPoints and sortable
   const targetTh = headerRow.querySelector("th.gwPoints.sortable");
@@ -20,7 +22,7 @@ function modifyHeaderRow(headerRow) {
   }
 }
 
-function modifyTableRows(tableElement) {
+function modifyTableRows(tableElement, transfersData = null) {
   const tbody = tableElement.querySelector("tbody");
 
   if (!tbody) {
@@ -28,44 +30,99 @@ function modifyTableRows(tableElement) {
     return;
   }
 
+  const linkElements = tableElement.querySelectorAll(
+    "ft-link[href*='/dashboard/']"
+  );
   const rows = tbody.querySelectorAll("tr");
-  rows.forEach((row) => {
+
+  rows.forEach((row, index) => {
     targetTd = row.querySelector("td.gwPoints");
-    const changesCell = document.createElement("td");
-    changesCell.className = "gwChanges"; // Add a class for styling
-    changesCell.textContent = "0 (0)"; // Default value
+    let changesCell = row.querySelector("td.gwChanges");
+
+    if (!changesCell) {
+      changesCell = document.createElement("td");
+      changesCell.className = "gwChanges";
+      changesCell.style.textAlign = "center";
+    }
 
     if (targetTd) {
-      // Insert the new cell before the gwPoints cell
       row.insertBefore(changesCell, targetTd);
-      console.log("✅ Added 'Bytter gjort' cell before gwPoints in a row.");
     } else {
-      // Fallback: insert at the end if target not found
       row.appendChild(changesCell);
-      console.log("✅ Added 'Bytter gjort' cell at the end of a row.");
+    }
+
+    changesCell.textContent = "0 (0)"; // Default value
+
+    if (transfersData && linkElements[index]) {
+      const href = linkElements[index].getAttribute("href");
+      const matches = href?.match(/\/dashboard\/\d+\/(\d+)/);
+      const teamId = matches?.[1];
+
+      if (teamId && transfersData[teamId]) {
+        const { gameweekTransfers, totalTransfers } = transfersData[teamId];
+        changesCell.textContent = `${totalTransfers} (${gameweekTransfers})`;
+      } else {
+        changesCell.textContent = "- (-)"; // Error state
+      }
+    } else {
+      changesCell.textContent = "laster..."; // Loading state
     }
   });
 }
 
-async function testApiCall() {
-  try {
-    console.log("🔄 Testing API call via background script...");
+async function fetchAllManagerTransfers(fantasyTeamIds) {
+  const results = {};
 
-    // Send message to background script
-    const response = await chrome.runtime.sendMessage({
-      action: "fetchManagerTransfers",
-      fantasyTeamId: "107887829",
-    });
+  // Loop outside - handle each request individually
+  for (const teamId of fantasyTeamIds) {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: "fetchManagerTransfers",
+        fantasyTeamId: teamId,
+      });
 
-    if (response.success) {
-      console.log("✅ API call successful via background:", response.data);
-      return response.data;
-    } else {
-      console.error("❌ Background script error:", response.error);
-      return null;
+      if (response.success) {
+        results[teamId] = response.data;
+      } else {
+        console.error(
+          `❌ Failed to fetch data for team ${teamId}:`,
+          response.error
+        );
+        results[teamId] = { gameweekTransfers: "?", totalTransfers: "?" };
+      }
+    } catch (error) {
+      console.error(`❌ Error fetching team ${teamId}:`, error);
+      results[teamId] = { gameweekTransfers: "?", totalTransfers: "?" };
     }
-  } catch (error) {
-    console.error("❌ Failed to communicate with background script:", error);
-    return null;
   }
+
+  return results;
+}
+
+function getUserIds(tableElement) {
+  const userIds = [];
+
+  if (!tableElement) {
+    console.error("Could not find table to extract user IDs");
+    return userIds;
+  }
+
+  // Find all ft-link elements within the table
+  const linkElements = tableElement.querySelectorAll(
+    "ft-link[href*='/dashboard/']"
+  );
+
+  linkElements.forEach((linkElement) => {
+    const href = linkElement.getAttribute("href");
+    if (href) {
+      // Extract the fantasyTeamId (second number) from: /dashboard/998580/107884227
+      const matches = href.match(/\/dashboard\/\d+\/(\d+)/);
+      if (matches && matches[1]) {
+        const fantasyTeamId = matches[1];
+        userIds.push(fantasyTeamId);
+      }
+    }
+  });
+
+  return userIds;
 }

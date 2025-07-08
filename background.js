@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function fetchManagerTransfers(fantasyTeamId) {
   try {
     const response = await fetch(
-      `https://tourmanager-game.api.scoutgg.net/fantasy_teams/${fantasyTeamId}?round=3`,
+      `https://tourmanager-game.api.scoutgg.net/fantasy_teams/${fantasyTeamId}?round=4`,
       {
         credentials: "include",
         headers: {

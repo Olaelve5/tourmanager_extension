@@ -12,7 +12,7 @@ function isLeaderboardPage() {
   );
 }
 
-function startModification() {
+async function startModification() {
   const { headerRow, tableElement } = findTableElements();
 
   if (!headerRow || !tableElement) {
@@ -25,14 +25,27 @@ function startModification() {
     return true;
   }
 
+  const userIds = getUserIds(tableElement);
+
   modifyHeaderRow(headerRow);
   modifyTableRows(tableElement);
+
+  const allManagerTransfers = await fetchAllManagerTransfers(userIds);
+
+  if (!allManagerTransfers) {
+    console.error("❌ Failed to fetch manager transfers.");
+    return false;
+  }
+
+  console.log("Fetched all manager transfers:", allManagerTransfers);
+
+  modifyTableRows(tableElement, allManagerTransfers);
+
   hasModified = true;
   return true;
 }
 
 function attemptModification() {
-  testApiCall();
   if (!isLeaderboardPage()) {
     return;
   }
