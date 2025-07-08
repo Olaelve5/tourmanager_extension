@@ -4,7 +4,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .then((data) => sendResponse({ success: true, data }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
 
-    // Return true to indicate we will respond asynchronously
     return true;
   }
 });
@@ -44,10 +43,6 @@ async function fetchManagerTransfers(fantasyTeamId, round) {
 
     return { gameweekTransfers, totalTransfers };
   } catch (error) {
-    console.error(
-      `❌ Failed to fetch transfers for team ${fantasyTeamId}:`,
-      error
-    );
     throw error;
   }
 }

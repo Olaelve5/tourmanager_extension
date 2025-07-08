@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tour Manager Enhancement",
   "version": "1.0",
-  "description": "Adds a column showing the number of changes per manager on tourmanager.no.",
+  "description": "Legger til en kolonne som viser antall bytter for hver manager på tourmanager.no.",
   "host_permissions": [
     "https://tourmanager.no/*",
     "https://tourmanager-game.api.scoutgg.net/*"
