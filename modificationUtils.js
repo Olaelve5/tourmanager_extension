@@ -51,8 +51,6 @@ function modifyTableRows(tableElement, transfersData = null) {
       row.appendChild(changesCell);
     }
 
-    changesCell.textContent = "0 (0)"; // Default value
-
     if (transfersData && linkElements[index]) {
       const href = linkElements[index].getAttribute("href");
       const matches = href?.match(/\/dashboard\/\d+\/(\d+)/);
@@ -73,8 +71,10 @@ function modifyTableRows(tableElement, transfersData = null) {
 async function fetchAllManagerTransfers(fantasyTeamIds) {
   const results = {};
 
-  // Loop outside - handle each request individually
-  for (const teamId of fantasyTeamIds) {
+  console.log(`🚀 Fetching ${fantasyTeamIds.length} managers in parallel...`);
+
+  // Create all promises at once
+  const promises = fantasyTeamIds.map(async (teamId) => {
     try {
       const response = await chrome.runtime.sendMessage({
         action: "fetchManagerTransfers",
@@ -82,20 +82,32 @@ async function fetchAllManagerTransfers(fantasyTeamIds) {
       });
 
       if (response.success) {
-        results[teamId] = response.data;
+        return { teamId, data: response.data };
       } else {
         console.error(
           `❌ Failed to fetch data for team ${teamId}:`,
           response.error
         );
-        results[teamId] = { gameweekTransfers: "?", totalTransfers: "?" };
+        return {
+          teamId,
+          data: { gameweekTransfers: "?", totalTransfers: "?" },
+        };
       }
     } catch (error) {
       console.error(`❌ Error fetching team ${teamId}:`, error);
-      results[teamId] = { gameweekTransfers: "?", totalTransfers: "?" };
+      return { teamId, data: { gameweekTransfers: "?", totalTransfers: "?" } };
     }
-  }
+  });
 
+  // Wait for all requests to complete
+  const responses = await Promise.all(promises);
+
+  // Convert to results object
+  responses.forEach(({ teamId, data }) => {
+    results[teamId] = data;
+  });
+
+  console.log("✅ All transfers fetched!");
   return results;
 }
 
