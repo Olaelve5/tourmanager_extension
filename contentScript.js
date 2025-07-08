@@ -13,7 +13,7 @@ function isLeaderboardPage() {
 }
 
 async function startModification() {
-  const { headerRow, tableElement } = findTableElements();
+  const { headerRow, tableElement, round } = findTableElements();
 
   if (!headerRow || !tableElement) {
     console.error("Could not find the necessary elements to modify.");
@@ -30,7 +30,7 @@ async function startModification() {
   modifyHeaderRow(headerRow);
   modifyTableRows(tableElement);
 
-  const allManagerTransfers = await fetchAllManagerTransfers(userIds);
+  const allManagerTransfers = await fetchAllManagerTransfers(userIds, round);
 
   if (!allManagerTransfers) {
     console.error("❌ Failed to fetch manager transfers.");
@@ -50,8 +50,8 @@ function attemptModification() {
     return;
   }
 
-  const intervalId = setInterval(() => {
-    const success = startModification();
+  const intervalId = setInterval(async () => {
+    const success = await startModification();
     if (success) {
       console.log("✅ Successfully modified the leaderboard.");
       clearInterval(intervalId);

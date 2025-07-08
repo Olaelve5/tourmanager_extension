@@ -6,9 +6,16 @@ function findTableElements() {
     return {
       headerRow: null,
       tableElement: null,
+      round: 0, // Default round value, will cause error
     };
   }
   console.log("✅ Found outer host: smg-leaderboard-page");
+
+  // Find the round
+  const round = pageHost.hasAttribute("round")
+    ? parseInt(pageHost.getAttribute("round"))
+    : 0;
+  console.log(`📊 Current round: ${round}`);
 
   // 2. Go inside its shadowRoot to find the target element.
   const leaderboardHost = pageHost.shadowRoot.querySelector(
@@ -21,6 +28,7 @@ function findTableElements() {
     return {
       headerRow: null,
       tableElement: null,
+      round: round, // Return the found round
     };
   }
   console.log("✅ Found inner host: ft-leaderboard-rank");
@@ -33,6 +41,7 @@ function findTableElements() {
     return {
       headerRow: null,
       tableElement: null,
+      round: round, // Return the found round
     };
   }
 
@@ -45,11 +54,13 @@ function findTableElements() {
     return {
       headerRow: null,
       tableElement: null,
+      round: round, // Return the found round
     };
   }
 
   return {
     headerRow: headerRow,
     tableElement: tableElement,
+    round: round, // Return the found round
   };
 }

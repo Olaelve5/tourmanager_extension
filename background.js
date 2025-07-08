@@ -1,6 +1,6 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "fetchManagerTransfers") {
-    fetchManagerTransfers(request.fantasyTeamId)
+    fetchManagerTransfers(request.fantasyTeamId, request.round) 
       .then((data) => sendResponse({ success: true, data }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
 
@@ -9,10 +9,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-async function fetchManagerTransfers(fantasyTeamId) {
+async function fetchManagerTransfers(fantasyTeamId, round) {
   try {
     const response = await fetch(
-      `https://tourmanager-game.api.scoutgg.net/fantasy_teams/${fantasyTeamId}?round=4`,
+      `https://tourmanager-game.api.scoutgg.net/fantasy_teams/${fantasyTeamId}?round=${round}`,
       {
         credentials: "include",
         headers: {

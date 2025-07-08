@@ -68,7 +68,7 @@ function modifyTableRows(tableElement, transfersData = null) {
   });
 }
 
-async function fetchAllManagerTransfers(fantasyTeamIds) {
+async function fetchAllManagerTransfers(fantasyTeamIds, round) {
   const results = {};
 
   console.log(`🚀 Fetching ${fantasyTeamIds.length} managers in parallel...`);
@@ -79,6 +79,7 @@ async function fetchAllManagerTransfers(fantasyTeamIds) {
       const response = await chrome.runtime.sendMessage({
         action: "fetchManagerTransfers",
         fantasyTeamId: teamId,
+        round: round,
       });
 
       if (response.success) {
