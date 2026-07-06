@@ -1,84 +1,84 @@
 function modifyHeaderRow(headerRow) {
-  // 5. Create a new th element for the rank column.
+  // Don't add if already exists
+  if (headerRow.querySelector("th.gwChanges")) return;
+
   const rankHeader = document.createElement("th");
   rankHeader.className = "gwChanges";
-  rankHeader.style.fontSize = "15px";
+  rankHeader.style.fontSize = "12px";
+  rankHeader.style.fontWeight = "bold";
+  rankHeader.style.color = "#f0f0f093";
   rankHeader.style.textAlign = "center";
   rankHeader.style.verticalAlign = "middle";
-  rankHeader.innerHTML = "Bytter brukt <br> (denne runden)";
+  rankHeader.style.padding = "8px";
+  rankHeader.textContent = "Bytter Brukt";
 
-  // Find the specific th element with classes gwPoints and sortable
-  const targetTh = headerRow.querySelector("th.gwPoints.sortable");
-
-  if (targetTh) {
-    headerRow.insertBefore(rankHeader, targetTh);
-    debugLog("✅ Added 'Bytter gjort' header before gwPoints column.");
+  // Find the round score column (second to last) and insert before it
+  const headers = Array.from(headerRow.querySelectorAll("th"));
+  // Headers: #, '', '', Lag, Manager, FerdigeSpilt, Runde X, Totalt
+  // We want to insert before "Runde X" (second to last)
+  const roundHeader = headers.length >= 2 ? headers[headers.length - 2] : null;
+  if (roundHeader) {
+    headerRow.insertBefore(rankHeader, roundHeader);
   } else {
-    // Fallback: insert at the beginning if target not found
-    headerRow.insertBefore(rankHeader, headerRow.firstChild);
-    debugLog(
-      "✅ Added 'Bytter gjort' header at the beginning (target not found)."
-    );
+    headerRow.appendChild(rankHeader);
   }
+  console.log("📝 [TourManager] Header modified");
 }
 
-function modifyTableRows(tableElement, transfersData = null) {
+function modifyTableRows(tableElement, numEntries) {
   const tbody = tableElement.querySelector("tbody");
+  if (!tbody) return;
 
-  if (!tbody) {
-    debugError("Could not find the tbody element inside the table.");
-    return;
-  }
-
-  const linkElements = tableElement.querySelectorAll(
-    "ft-link[href*='/dashboard/']"
-  );
   const rows = tbody.querySelectorAll("tr");
+  rows.forEach((row) => {
+    // Don't add if already exists
+    if (row.querySelector("td.gwChanges")) return;
 
-  rows.forEach((row, index) => {
-    targetTd = row.querySelector("td.gwPoints");
-    let changesCell = row.querySelector("td.gwChanges");
+    const changesCell = document.createElement("td");
+    changesCell.className = "gwChanges";
+    changesCell.style.textAlign = "center";
+    changesCell.style.padding = "8px";
+    changesCell.style.fontSize = "14px";
+    changesCell.style.fontWeight = "bold";
+    changesCell.textContent = "...";
 
-    if (!changesCell) {
-      changesCell = document.createElement("td");
-      changesCell.className = "gwChanges";
-      changesCell.style.textAlign = "center";
-    }
-
-    if (targetTd) {
-      row.insertBefore(changesCell, targetTd);
+    // Insert before second-to-last cell (round score column)
+    const cells = Array.from(row.querySelectorAll("td"));
+    const roundCell = cells.length >= 2 ? cells[cells.length - 2] : null;
+    if (roundCell) {
+      row.insertBefore(changesCell, roundCell);
     } else {
       row.appendChild(changesCell);
-    }
-
-    if (transfersData && linkElements[index]) {
-      const href = linkElements[index].getAttribute("href");
-      const matches = href?.match(/\/dashboard\/\d+\/(\d+)/);
-      const teamId = matches?.[1];
-
-      if (teamId && transfersData[teamId]) {
-        const { gameweekTransfers, totalTransfers } = transfersData[teamId];
-
-        // Handle rate limit exceeded or error states
-        if (
-          (typeof totalTransfers === "string" &&
-            totalTransfers.includes("Rate")) ||
-          (typeof gameweekTransfers === "string" &&
-            gameweekTransfers.includes("Rate"))
-        ) {
-          changesCell.textContent = "rate limit exceeded";
-          changesCell.style.color = "orange";
-          return;
-        }
-
-        changesCell.textContent = `${totalTransfers} (${gameweekTransfers})`;
-      } else {
-        changesCell.textContent = "- (-)"; // Error state
-      }
-    } else {
-      changesCell.textContent = "laster..."; // Loading state
     }
   });
 }
 
+function modifyTableRowsWithData(tableElement, entries, transfersData) {
+  const tbody = tableElement.querySelector("tbody");
+  if (!tbody) return;
 
+  const rows = tbody.querySelectorAll("tr");
+  console.log("📝 [TourManager] Updating", rows.length, "rows with transfer data");
+
+  rows.forEach((row, index) => {
+    let changesCell = row.querySelector("td.gwChanges");
+    if (!changesCell) return;
+
+    const entry = entries[index];
+    if (!entry) {
+      changesCell.textContent = "-";
+      return;
+    }
+
+    const squadId = entry.squadId;
+    const transferData = transfersData[squadId];
+
+    if (transferData) {
+      changesCell.innerHTML = `${transferData.usedTotal}<span style="color: gray; font-size: 0.75em;">/25</span>`;
+      changesCell.title = `Brukt: ${transferData.usedTotal} / ${transferData.budget} | Gjenstår: ${transferData.remaining}`;
+    } else {
+      changesCell.textContent = "?";
+      changesCell.style.color = "gray";
+    }
+  });
+}

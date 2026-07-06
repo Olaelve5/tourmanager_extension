@@ -1,13 +1,15 @@
-const DEBUG_MODE = false; // Set to false in production
+console.log("🟢 [TourManager] debugUtils.js loaded - FIRST content script file");
+
+const DEBUG_MODE = true; // Set to false in production
 
 function debugLog(...args) {
   if (DEBUG_MODE) {
-    console.log(...args);
+    console.log("[TourManager]", ...args);
   }
 }
 
 function debugError(...args) {
   if (DEBUG_MODE) {
-    console.error(...args);
+    console.error("[TourManager]", ...args);
   }
 }

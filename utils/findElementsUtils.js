@@ -1,94 +1,38 @@
 function findTableElements() {
-  // 1. Find the FIRST host element on the page.
-  const pageHost = document.querySelector("smg-leaderboard-page");
-  if (!pageHost || !pageHost.shadowRoot) {
-    debugError("Could not find <smg-leaderboard-page> or its shadowRoot.");
-    return {
-      headerRow: null,
-      tableElement: null,
-      round: 0, // Default round value, will cause error
-    };
-  }
-  debugLog("✅ Found outer host: smg-leaderboard-page");
+  console.log("🔎 [TourManager] findTableElements() - searching regular DOM...");
 
-  // Find the round
-  const round = pageHost.hasAttribute("round")
-    ? parseInt(pageHost.getAttribute("round"))
-    : 0;
-  debugLog(`📊 Current round: ${round}`);
+  // Look for a table element on the page
+  const tables = document.querySelectorAll("table");
+  console.log("🔎 [TourManager] Found", tables.length, "table(s) on page");
 
-  // 2. Go inside its shadowRoot to find the target element.
-  const leaderboardHost = pageHost.shadowRoot.querySelector(
-    "ft-leaderboard-rank"
-  );
-  if (!leaderboardHost || !leaderboardHost.shadowRoot) {
-    debugError(
-      "Could not find <ft-leaderboard-rank> inside the first shadowRoot."
-    );
-    return {
-      headerRow: null,
-      tableElement: null,
-      round: round, // Return the found round
-    };
-  }
-  debugLog("✅ Found inner host: ft-leaderboard-rank");
-
-  // 3. Find the table element inside the shadowRoot of the leaderboard host.
-  const tableElement = leaderboardHost.shadowRoot.querySelector("table");
-
-  if (!tableElement) {
-    debugError("Could not find the table element inside the shadowRoot.");
-    return {
-      headerRow: null,
-      tableElement: null,
-      round: round, // Return the found round
-    };
+  if (tables.length === 0) {
+    return { headerRow: null, tableElement: null };
   }
 
-  debugLog("✅ Found the table element inside the shadowRoot.");
-
-  // 4. Find the thead element inside the table and the tr element inside the thead.
-  const headerRow = tableElement.querySelector("thead tr");
-  if (!headerRow) {
-    debugError("Could not find the thead element inside the table.");
-    return {
-      headerRow: null,
-      tableElement: null,
-      round: round, // Return the found round
-    };
-  }
-
-  return {
-    headerRow: headerRow,
-    tableElement: tableElement,
-    round: round, // Return the found round
-  };
-}
-
-function getUserIds(tableElement) {
-  const userIds = [];
-
-  if (!tableElement) {
-    debugError("Could not find table to extract user IDs");
-    return userIds;
-  }
-
-  // Find all ft-link elements within the table
-  const linkElements = tableElement.querySelectorAll(
-    "ft-link[href*='/dashboard/']"
-  );
-
-  linkElements.forEach((linkElement) => {
-    const href = linkElement.getAttribute("href");
-    if (href) {
-      // Extract the fantasyTeamId (second number) from: /dashboard/998580/107884227
-      const matches = href.match(/\/dashboard\/\d+\/(\d+)/);
-      if (matches && matches[1]) {
-        const fantasyTeamId = matches[1];
-        userIds.push(fantasyTeamId);
-      }
+  // Use the first table (or find the leaderboard-specific one)
+  let tableElement = null;
+  for (const table of tables) {
+    // Look for a table that has manager/team-related content
+    const text = table.textContent || "";
+    if (text.includes("TOTALT") || text.includes("LAG") || text.includes("MANAGER")) {
+      tableElement = table;
+      console.log("🔎 [TourManager] Found leaderboard table by content match");
+      break;
     }
-  });
+  }
 
-  return userIds;
+  if (!tableElement) {
+    tableElement = tables[0];
+    console.log("🔎 [TourManager] Using first table as fallback");
+  }
+
+  const headerRow = tableElement.querySelector("thead tr") || tableElement.querySelector("tr:first-child");
+  console.log("🔎 [TourManager] Header row:", !!headerRow);
+
+  if (headerRow) {
+    const headers = Array.from(headerRow.querySelectorAll("th, td")).map(el => el.textContent.trim());
+    console.log("🔎 [TourManager] Headers found:", headers);
+  }
+
+  return { headerRow, tableElement };
 }

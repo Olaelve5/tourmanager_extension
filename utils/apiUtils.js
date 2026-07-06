@@ -1,69 +1,90 @@
-async function fetchAllManagerTransfers(fantasyTeamIds, round) {
+const API_BASE = "https://vm-fantasyapi-production.up.railway.app";
+
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+async function fetchLeaderboardData(leagueId, page = 1) {
+  const url = `${API_BASE}/leagues/${leagueId}/leaderboard?page=${page}&limit=30&sortBy=total`;
+  console.log("🌐 [TourManager] Fetching leaderboard:", url);
+
+  const token = getToken();
+  console.log("🔑 [TourManager] Token:", token ? `found (length: ${token.length})` : "NOT FOUND");
+
+  const headers = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(url, { headers, credentials: "include" });
+    console.log("🌐 [TourManager] Leaderboard response status:", response.status);
+
+    if (!response.ok) {
+      console.error("❌ [TourManager] Leaderboard API error:", response.status, response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log("🌐 [TourManager] Leaderboard data keys:", Object.keys(data));
+    return data;
+  } catch (error) {
+    console.error("❌ [TourManager] Leaderboard fetch error:", error);
+    return null;
+  }
+}
+
+async function fetchAllManagerTransfers(squadIds, round) {
+  console.log("📡 [TourManager] fetchAllManagerTransfers called with", squadIds.length, "squads, round:", round);
   const results = {};
   const teamsToFetch = [];
+  const token = getToken();
 
-  // Check if we have cached data for any team
-  fantasyTeamIds.forEach((teamId) => {
-    const cached = getCachedTransfers(teamId, round);
+  squadIds.forEach((squadId) => {
+    const cached = getCachedTransfers(squadId, round);
     if (cached) {
-      results[teamId] = cached;
+      results[squadId] = cached;
     } else {
-      teamsToFetch.push(teamId);
+      teamsToFetch.push(squadId);
     }
   });
 
   if (teamsToFetch.length === 0) {
-    debugLog("✅ All data from cache!");
+    console.log("✅ [TourManager] All data from cache!");
     return results;
   }
 
-  // Create all promises at once
-  const promises = teamsToFetch.map(async (teamId) => {
+  console.log("📡 [TourManager] Need to fetch", teamsToFetch.length, "squads");
+
+  const promises = teamsToFetch.map(async (squadId) => {
     try {
       const response = await chrome.runtime.sendMessage({
-        action: "fetchManagerTransfers",
-        fantasyTeamId: teamId,
-        round: round,
+        action: "fetchSquadTransfers",
+        squadId: squadId,
+        token: token,
       });
 
-      if (response.success) {
-        // Cache the response
-        setCachedTransfers(teamId, round, response.data);
-        return { teamId, data: response.data };
+      if (response && response.success) {
+        setCachedTransfers(squadId, round, response.data);
+        return { squadId, data: response.data };
       } else {
-        debugError(
-          `❌ Failed to fetch data for team ${teamId}:`,
-          response.error
-        );
-        if (response.error.includes("status: 429")) {
-          return {
-            teamId,
-            data: {
-              gameweekTransfers: "Rate limit exceeded",
-              totalTransfers: "Rate limit exceeded",
-            },
-          };
-        }
-
-        return {
-          teamId,
-          data: { gameweekTransfers: "?", totalTransfers: "?" },
-        };
+        console.error("❌ [TourManager] Failed for squad", squadId, ":", response?.error);
+        return { squadId, data: null };
       }
     } catch (error) {
-      debugError(`❌ Error fetching team ${teamId}:`, error);
-      return { teamId, data: { gameweekTransfers: "?", totalTransfers: "?" } };
+      console.error("❌ [TourManager] Error fetching squad", squadId, ":", error);
+      return { squadId, data: null };
     }
   });
 
-  // Wait for all requests to complete
   const responses = await Promise.all(promises);
-
-  // Convert to results object
-  responses.forEach(({ teamId, data }) => {
-    results[teamId] = data;
+  responses.forEach(({ squadId, data }) => {
+    results[squadId] = data;
   });
 
-  debugLog("✅ All transfers fetched!");
+  console.log("✅ [TourManager] All transfers fetched!");
   return results;
 }

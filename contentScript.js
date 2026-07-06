@@ -1,124 +1,162 @@
-// Functions are defined in findElementsUtils.js and modificationUtils.js
-// No need to import them here, they will be available globally.
+console.log("🚀 [TourManager] Content script loaded on:", window.location.href);
 
 let hasModified = false;
-let shadowDOMObserverSetup = false;
+let lastEntryIds = "";
+let tableObserverSetup = false;
+let isRunning = false;
 
-function isLeaderboardPage() {
-  return (
-    window.location.href.includes("leaderboard") ||
-    window.location.pathname.includes("leaderboard") ||
-    document.querySelector("smg-leaderboard-page") !== null
-  );
+function isLeaguePage() {
+  return window.location.pathname.includes("/leagues/");
+}
+
+function getLeagueId() {
+  const match = window.location.pathname.match(/\/leagues\/([a-f0-9-]+)/);
+  return match ? match[1] : null;
+}
+
+function getCurrentPage() {
+  // Check the pagination span: "Side X av Y"
+  const pageInfo = document.querySelector("span.page-info");
+  if (pageInfo) {
+    const match = pageInfo.textContent.match(/Side\s+(\d+)/);
+    if (match) {
+      console.log("📄 [TourManager] Detected page from span:", match[1]);
+      return parseInt(match[1]);
+    }
+  }
+
+  // Fallback: URL query params
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has("page")) {
+    return parseInt(urlParams.get("page")) || 1;
+  }
+
+  return 1;
 }
 
 async function startModification() {
-  const { headerRow, tableElement, round } = findTableElements();
+  if (isRunning) return false;
+  isRunning = true;
 
-  if (!headerRow || !tableElement) {
-    debugError("Could not find the necessary elements to modify.");
-    return false;
-  }
+  try {
+    console.log("🔧 [TourManager] startModification() called");
+    const { headerRow, tableElement } = findTableElements();
 
-  if (tableElement.querySelector("th.gwChanges")) {
-    debugLog("✅ Table already modified, skipping...");
+    if (!headerRow || !tableElement) {
+      console.warn("⚠️ [TourManager] Missing table elements");
+      return false;
+    }
+
+    const leagueId = getLeagueId();
+    if (!leagueId) return false;
+
+    const page = getCurrentPage();
+    console.log("📄 [TourManager] Current page:", page);
+
+    // Fetch leaderboard data for current page
+    const leaderboardData = await fetchLeaderboardData(leagueId, page);
+    if (!leaderboardData) {
+      console.error("❌ [TourManager] Failed to fetch leaderboard data");
+      return false;
+    }
+
+    // Check if entries changed
+    const currentEntryIds = leaderboardData.entries.map(e => e.squadId).join(",");
+    if (currentEntryIds === lastEntryIds && tableElement.querySelector("th.gwChanges")) {
+      console.log("✅ [TourManager] Same entries, already modified");
+      return true;
+    }
+    lastEntryIds = currentEntryIds;
+
+    console.log("📊 [TourManager] Got", leaderboardData.entries.length, "entries");
+
+    // Remove existing gwChanges columns
+    tableElement.querySelectorAll("th.gwChanges, td.gwChanges").forEach(el => el.remove());
+
+    modifyHeaderRow(headerRow);
+    modifyTableRows(tableElement);
+
+    const squadIds = leaderboardData.entries.map(e => e.squadId);
+    const round = leaderboardData.latestScoredRound;
+
+    console.log("🔄 [TourManager] Fetching transfers for", squadIds.length, "squads");
+    const allTransfers = await fetchAllManagerTransfers(squadIds, round);
+    if (!allTransfers) return false;
+
+    modifyTableRowsWithData(tableElement, leaderboardData.entries, allTransfers);
+    console.log("✅ [TourManager] Done!");
+
+    hasModified = true;
     return true;
+  } finally {
+    isRunning = false;
   }
-
-  const userIds = getUserIds(tableElement);
-
-  modifyHeaderRow(headerRow);
-  modifyTableRows(tableElement);
-
-  debugLog(
-    "🔄 Fetching all manager transfers for user IDs:",
-    userIds,
-    "and round:",
-    round
-  );
-  const allManagerTransfers = await fetchAllManagerTransfers(userIds, round);
-
-  if (!allManagerTransfers) {
-    debugError("❌ Failed to fetch manager transfers.");
-    return false;
-  }
-
-  debugLog("Fetched all manager transfers:", allManagerTransfers);
-
-  modifyTableRows(tableElement, allManagerTransfers);
-
-  hasModified = true;
-  return true;
 }
 
 function attemptModification() {
-  if (!isLeaderboardPage()) {
-    return;
-  }
+  if (!isLeaguePage()) return;
 
+  let attempts = 0;
   const intervalId = setInterval(async () => {
+    attempts++;
     const success = await startModification();
     if (success) {
-      debugLog("✅ Successfully modified the leaderboard.");
       clearInterval(intervalId);
-      if (!shadowDOMObserverSetup) {
-        setupShadowDOMObserver();
-        shadowDOMObserverSetup = true;
-      }
-    } else {
-      debugLog("🔄 Retrying...");
+      setupTableObserver();
     }
   }, 500);
 
-  // Stop trying after 10 seconds
   setTimeout(() => clearInterval(intervalId), 10000);
+}
+
+function setupTableObserver() {
+  if (tableObserverSetup) return;
+
+  const pageInfo = document.querySelector("span.page-info");
+  let lastPageText = pageInfo?.textContent || "";
+  let debounceTimer = null;
+
+  const handlePageChange = () => {
+    const currentPageText = pageInfo?.textContent || "";
+    if (currentPageText === lastPageText) return;
+    lastPageText = currentPageText;
+
+    // Immediately show loading state
+    const { tableElement } = findTableElements();
+    if (tableElement) {
+      tableElement.querySelectorAll("td.gwChanges").forEach(el => el.textContent = "...");
+    }
+
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      console.log("🔀 [TourManager] Page changed to:", currentPageText);
+      lastEntryIds = "";
+      startModification();
+    }, 500);
+  };
+
+  if (pageInfo) {
+    const pageObserver = new MutationObserver(handlePageChange);
+    pageObserver.observe(pageInfo, { characterData: true, childList: true, subtree: true });
+    console.log("👁️ [TourManager] Pagination observer active");
+  }
+
+  tableObserverSetup = true;
 }
 
 // Initial attempt
 attemptModification();
 
+// Watch for SPA navigation
 let currentUrl = window.location.href;
-
-const observer = new MutationObserver((mutations) => {
-  // Check if the URL has changed
+const navObserver = new MutationObserver(() => {
   if (window.location.href !== currentUrl) {
+    console.log("🔀 [TourManager] URL changed");
     currentUrl = window.location.href;
-
-    // Reset modification flag and try again
     hasModified = false;
-    shadowDOMObserverSetup = false;
+    lastEntryIds = "";
+    tableObserverSetup = false;
     attemptModification();
   }
 });
-
-// Start the mutation observer
-observer.observe(document.body, {
-  childList: true,
-  subtree: true,
-});
-
-// Function to set up a MutationObserver for the outer shadow DOM
-// This will catch changes like pagination that occur within the shadow DOM
-// and trigger the modification attempt again.
-function setupShadowDOMObserver() {
-  const pageHost = document.querySelector("smg-leaderboard-page");
-  if (pageHost && pageHost.shadowRoot) {
-    debugLog("Setting up outer shadow DOM observer");
-
-    // Only observe the outer shadow DOM - this catches pagination changes
-    const outerObserver = new MutationObserver((mutations) => {
-      debugLog("🔄 Shadow DOM mutations detected!", mutations.length);
-      hasModified = false;
-      attemptModification();
-    });
-
-    outerObserver.observe(pageHost.shadowRoot, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      characterData: true,
-    });
-
-    debugLog("✅ Shadow DOM observer setup successfully");
-  }
-}
+navObserver.observe(document.body, { childList: true, subtree: true });
